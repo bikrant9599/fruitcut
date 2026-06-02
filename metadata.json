@@ -1,0 +1,6 @@
+{
+  "name": "Gesture Fruit Slice",
+  "description": "A Fruit Ninja style game controlled by hand gestures. Features both an in-browser playable hand-tracking web experience and a exportable Python OOP project using Pygame, OpenCV, and MediaPipe.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
