@@ -1,4 +1,2 @@
-pygame>=2.5.0
-mediapipe>=0.10.0
-opencv-python>=4.8.0
-numpy>=1.24.0
+# Local Python dependencies (commented out to allow Cloud Run Web Deployment)
+# Install locally on your desktop using: pip install pygame mediapipe opencv-python numpy
