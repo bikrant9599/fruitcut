@@ -1618,28 +1618,13 @@ export default function FruitNinjaGameWeb() {
           </div>
         </div>
 
-        {/* Floating webcam video placeholder wrapper */}
-        <div className="mt-6">
-          <div className="bg-slate-950 border border-slate-800/80 rounded-xl overflow-hidden relative aspect-video flex items-center justify-center">
-            <video
-              ref={videoRef}
-              className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
-              muted
-              playsInline
-            />
-            {trackingMode !== 'camera' && (
-              <div className="text-slate-600 text-center text-[10px] p-3">
-                <CameraIcon className="w-5 h-5 mx-auto mb-1 opacity-40" />
-                Camera Offline
-              </div>
-            )}
-            {trackingMode === 'camera' && cameraLoading && (
-              <div className="text-slate-400 text-center text-[10px] p-3 z-10">
-                Starting Video Feed...
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Hidden video element required for MediaPipe hand tracking capture */}
+        <video
+          ref={videoRef}
+          className="hidden"
+          muted
+          playsInline
+        />
       </div>
 
       {/* 2. Right Side: Interactive HTML5 Gaming Canvas Field */}
