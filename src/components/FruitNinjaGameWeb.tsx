@@ -70,6 +70,17 @@ export function detectFruitSlice(
   return slicedFruits;
 }
 
+const FRUIT_SPECS: Record<FruitType, { colorP: string; colorS: string; radius: number; score: number; isBomb: boolean }> = {
+  watermelon: { colorP: '#22c55e', colorS: '#ef4444', radius: 42, score: 1, isBomb: false },
+  orange: { colorP: '#f97316', colorS: '#fed7aa', radius: 28, score: 2, isBomb: false },
+  apple: { colorP: '#dc2626', colorS: '#fecaca', radius: 32, score: 2, isBomb: false },
+  banana: { colorP: '#eab308', colorS: '#fef08a', radius: 25, score: 3, isBomb: false },
+  bomb: { colorP: '#334155', colorS: '#ef4444', radius: 34, score: 0, isBomb: true },
+  dragonfruit: { colorP: '#ec4899', colorS: '#fbcfe8', radius: 36, score: 8, isBomb: false }
+};
+
+const STANDARD_FRUIT_TYPES: FruitType[] = ['watermelon', 'orange', 'apple', 'banana'];
+
 export default function FruitNinjaGameWeb() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -113,6 +124,7 @@ export default function FruitNinjaGameWeb() {
 
   useEffect(() => {
     sfx.setBgmVolume(bgmVolume);
+    bgmVolumeRef.current = bgmVolume;
   }, [bgmVolume]);
 
   // Refs for Game Loop Mechanics (to avoid stale React closure values in ticks)
@@ -121,6 +133,11 @@ export default function FruitNinjaGameWeb() {
   const gameStateRef = useRef<GameState>('START');
   const fruitsRef = useRef<FruitEntity[]>([]);
   const particlesRef = useRef<ParticleEntity[]>([]);
+
+  const activeCountRef = useRef<number>(0);
+  const handDetectedRef = useRef<boolean>(false);
+  const bgmVolumeRef = useRef<number>(0.25);
+  const isPortraitRef = useRef<boolean>(false);
 
   const bladeTrailRef = useRef<{ x: number; y: number; time: number }[]>([]);
   const lastBladePosRef = useRef<{ x: number; y: number } | null>(null);
@@ -191,10 +208,10 @@ export default function FruitNinjaGameWeb() {
         }
         if (gameStateRef.current === 'PLAYING') {
           setGameState('PAUSED');
-          sfx.setBgmVolume(bgmVolume * 0.3);
+          sfx.setBgmVolume(bgmVolumeRef.current * 0.3);
         } else if (gameStateRef.current === 'PAUSED') {
           setGameState('PLAYING');
-          sfx.setBgmVolume(bgmVolume);
+          sfx.setBgmVolume(bgmVolumeRef.current);
         }
       }
     };
@@ -202,7 +219,7 @@ export default function FruitNinjaGameWeb() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [bgmVolume]);
+  }, []);
 
   // Handle High Score Sync
   const checkUpdateHighScore = (currentScore: number) => {
@@ -292,9 +309,17 @@ export default function FruitNinjaGameWeb() {
           const dpr = window.devicePixelRatio || 1;
           const w = containerRef.current.clientWidth || 640;
           const h = containerRef.current.clientHeight || 460;
-          canvas.width = w * dpr;
-          canvas.height = h * dpr;
-          setIsPortrait(w < h);
+          const targetW = Math.floor(w * dpr);
+          const targetH = Math.floor(h * dpr);
+          if (canvas.width !== targetW || canvas.height !== targetH) {
+            canvas.width = targetW;
+            canvas.height = targetH;
+          }
+          const portrait = w < h;
+          if (isPortraitRef.current !== portrait) {
+            isPortraitRef.current = portrait;
+            setIsPortrait(portrait);
+          }
         }
       });
     };
@@ -311,16 +336,6 @@ export default function FruitNinjaGameWeb() {
 
     const observer = new ResizeObserver(handleResize);
     if (containerRef.current) observer.observe(containerRef.current);
-
-    // Fruit Type properties mapper
-    const FRUIT_SPECS: Record<FruitType, { colorP: string; colorS: string; radius: number; score: number; isBomb: boolean }> = {
-      watermelon: { colorP: '#22c55e', colorS: '#ef4444', radius: 42, score: 1, isBomb: false },
-      orange: { colorP: '#f97316', colorS: '#fed7aa', radius: 28, score: 2, isBomb: false },
-      apple: { colorP: '#dc2626', colorS: '#fecaca', radius: 32, score: 2, isBomb: false },
-      banana: { colorP: '#eab308', colorS: '#fef08a', radius: 25, score: 3, isBomb: false },
-      bomb: { colorP: '#334155', colorS: '#ef4444', radius: 34, score: 0, isBomb: true },
-      dragonfruit: { colorP: '#ec4899', colorS: '#fbcfe8', radius: 36, score: 8, isBomb: false }
-    };
 
     // Helper: Spawn dynamic coordinated wave of fruits with safety horizontal column spacing
     const spawnFruitWave = (count: number, speedScale: number, bombChance: number, timestamp: number) => {
@@ -367,8 +382,7 @@ export default function FruitNinjaGameWeb() {
             chosenType = 'dragonfruit';
             specialCount++;
           } else {
-            const types: FruitType[] = ['watermelon', 'orange', 'apple', 'banana'];
-            chosenType = types[Math.floor(Math.random() * types.length)];
+            chosenType = STANDARD_FRUIT_TYPES[Math.floor(Math.random() * STANDARD_FRUIT_TYPES.length)];
           }
         }
 
@@ -479,7 +493,11 @@ export default function FruitNinjaGameWeb() {
         // Clamp dt between 0.1 and 2.5 to avoid teleportation.
         dt = Math.max(0.1, Math.min(2.5, delta / 16.67));
 
-        setActiveFruitsCount(fruitsRef.current.filter(f => !f.sliced).length);
+        const activeCount = fruitsRef.current.filter(f => !f.sliced).length;
+        if (activeCountRef.current !== activeCount) {
+          activeCountRef.current = activeCount;
+          setActiveFruitsCount(activeCount);
+        }
       }
       lastFrameTimeRef.current = now;
 
@@ -1387,7 +1405,10 @@ export default function FruitNinjaGameWeb() {
           if (!canvasRef.current) return;
 
           if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-            setHandDetected(true);
+            if (!handDetectedRef.current) {
+              handDetectedRef.current = true;
+              setHandDetected(true);
+            }
             const hand = results.multiHandLandmarks[0];
             latestHandRef.current = hand;
 
@@ -1403,7 +1424,10 @@ export default function FruitNinjaGameWeb() {
               }
             }
           } else {
-            setHandDetected(false);
+            if (handDetectedRef.current) {
+              handDetectedRef.current = false;
+              setHandDetected(false);
+            }
             latestHandRef.current = null;
           }
         });
@@ -1449,7 +1473,7 @@ export default function FruitNinjaGameWeb() {
     <div className="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col xl:flex-row min-h-[580px]">
       
       {/* 1. Left Side: Dynamic HUD Control Console Panel */}
-      <div className="w-full xl:w-[280px] p-6 bg-slate-900/60 border-b xl:border-b-0 xl:border-r border-slate-800 flex flex-col justify-between select-none">
+      <div className="w-full xl:w-[280px] p-6 bg-slate-900/60 border-b xl:border-b-0 xl:border-r border-slate-800 flex flex-col justify-between select-none shrink-0">
         <div>
           {/* Mode Selector */}
           <div className="space-y-3">
