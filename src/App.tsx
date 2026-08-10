@@ -1,10 +1,13 @@
 import { Gamepad2 } from 'lucide-react';
 import FruitNinjaGameWeb from './components/FruitNinjaGameWeb';
+import CinematicLoadingScreen from './components/CinematicLoadingScreen';
 
 export default function App() {
   return (
     <div className="min-h-screen bg-[rgb(10,12,18)] text-slate-100 font-sans antialiased selection:bg-indigo-500/30 selection:text-white">
-      
+      {/* Cinematic Full-Screen Intro Loading Overlay */}
+      <CinematicLoadingScreen />
+
       {/* 1. Header Banner */}
       <header className="border-b border-slate-900 bg-[rgb(12,14,21)]/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
